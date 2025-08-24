@@ -46,3 +46,10 @@ window.addEventListener('load', async () => {
         updateProfile(displayName, bio);
     });
 });
+
+const bioInput = document.getElementById('update-bio');
+const bioCounter = document.getElementById('bio-counter');
+
+bioInput.addEventListener('input', () => {
+    bioCounter.textContent = `${bioInput.value.length}/280`;
+});

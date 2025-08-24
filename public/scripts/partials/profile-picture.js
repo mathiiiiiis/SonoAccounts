@@ -55,25 +55,29 @@ document.getElementById('cropper-cancel').addEventListener('click', () => {
     document.getElementById('cropper-modal').style.display = 'none';
     if (cropper) cropper.destroy();
     currentFile = null;
-    //reset file input
+    // Reset file input
     document.getElementById('profile-picture-input').value = '';
 });
+
+//helper to upload file and recreate FormData for retries
+async function uploadFile(fileBlob, filename = 'profile.png') {
+    const formData = new FormData();
+    formData.append('file', fileBlob, filename);
+
+    return await apiCall('/users/me/upload-profile-picture', {
+        method: 'POST',
+        body: formData,
+        headers: { 'Authorization': `Bearer ${state.token}` },
+        isFile: true // optional: prevents FormData reuse issues
+    });
+};
 
 //skip crop + upload original
 document.getElementById('cropper-skip').addEventListener('click', async () => {
     if (!currentFile) return;
 
-    const formData = new FormData();
-    formData.append('profile_picture', currentFile); //use proper field name
-
     try {
-        const updatedUser = await apiCall('/users/me/upload-profile-picture', {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'Authorization': `Bearer ${state.token}` //include auth
-            }
-        });
+        const updatedUser = await uploadFile(currentFile, currentFile.name);
 
         state.currentUser = updatedUser;
         document.getElementById('profile-pic').innerHTML =
@@ -102,17 +106,8 @@ document.getElementById('cropper-confirm').addEventListener('click', async () =>
     });
 
     canvas.toBlob(async (blob) => {
-        const formData = new FormData();
-        formData.append('profile_picture', blob, 'profile.png'); //proper field name
-
         try {
-            const updatedUser = await apiCall('/users/me/upload-profile-picture', {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'Authorization': `Bearer ${state.token}`
-                }
-            });
+            const updatedUser = await uploadFile(blob);
 
             state.currentUser = updatedUser;
             document.getElementById('profile-pic').innerHTML =
@@ -127,7 +122,7 @@ document.getElementById('cropper-confirm').addEventListener('click', async () =>
         document.getElementById('cropper-modal').style.display = 'none';
         cropper.destroy();
         currentFile = null;
-        //reset file input
+        //rest file input
         document.getElementById('profile-picture-input').value = '';
     });
 });

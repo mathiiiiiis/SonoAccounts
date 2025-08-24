@@ -35,8 +35,22 @@ export async function loadUserProfile() {
 export async function updateProfile(displayName, bio) {
     try {
         const updateData = {};
+
         if (displayName) updateData.display_name = displayName;
-        if (bio) updateData.bio = bio;
+
+        if (bio) {
+            //enforce max length
+            const MAX_BIO_LENGTH = 280;
+            if (bio.length > MAX_BIO_LENGTH) {
+                showMessage(
+                    'dashboard-message',
+                    `Bio cannot exceed ${MAX_BIO_LENGTH} characters.`,
+                    'error'
+                );
+                return; //stop update
+            }
+            updateData.bio = bio;
+        }
 
         const updatedUser = await apiCall('/users/me', {
             method: 'PUT',
