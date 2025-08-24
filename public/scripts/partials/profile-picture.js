@@ -1,4 +1,4 @@
-import { apiCall, showMessage, state } from './utils.js';
+import { apiCall, showMessage, state, tokens } from './utils.js';
 
 let cropper;
 let currentFile = null;
@@ -21,7 +21,7 @@ document.getElementById('profile-picture-input').addEventListener('change', (e) 
         return;
     }
 
-    //max file size 5mb
+    //max file size 5MB
     if (file.size > 5 * 1024 * 1024) {
         showMessage('dashboard-message', 'File too large (max 5MB).', 'error');
         e.target.value = '';
@@ -55,22 +55,17 @@ document.getElementById('cropper-cancel').addEventListener('click', () => {
     document.getElementById('cropper-modal').style.display = 'none';
     if (cropper) cropper.destroy();
     currentFile = null;
-    // Reset file input
+    //reset file input
     document.getElementById('profile-picture-input').value = '';
 });
 
-//helper to upload file and recreate FormData for retries
-async function uploadFile(fileBlob, filename = 'profile.png') {
-    const formData = new FormData();
-    formData.append('file', fileBlob, filename);
-
-    return await apiCall('/users/me/upload-profile-picture', {
-        method: 'POST',
-        body: formData,
-        headers: { 'Authorization': `Bearer ${state.token}` },
-        isFile: true // optional: prevents FormData reuse issues
+async function uploadFile(file, filename = "profile.png") {
+    return await apiCall("/users/me/upload-profile-picture", {
+        method: "POST",
+        body: file, //raw file/Blob
+        filename: filename,
     });
-};
+}
 
 //skip crop + upload original
 document.getElementById('cropper-skip').addEventListener('click', async () => {
@@ -86,13 +81,12 @@ document.getElementById('cropper-skip').addEventListener('click', async () => {
         showMessage('dashboard-message', 'Profile picture updated successfully!', 'success');
     } catch (error) {
         console.error('Profile picture upload error:', error);
-        showMessage('dashboard-message', error.message);
+        showMessage('dashboard-message', error.message, 'error');
     }
 
     document.getElementById('cropper-modal').style.display = 'none';
     if (cropper) cropper.destroy();
     currentFile = null;
-    //reset file input
     document.getElementById('profile-picture-input').value = '';
 });
 
@@ -107,7 +101,7 @@ document.getElementById('cropper-confirm').addEventListener('click', async () =>
 
     canvas.toBlob(async (blob) => {
         try {
-            const updatedUser = await uploadFile(blob);
+            const updatedUser = await uploadFile(blob, 'cropped_profile.png');
 
             state.currentUser = updatedUser;
             document.getElementById('profile-pic').innerHTML =
@@ -116,13 +110,12 @@ document.getElementById('cropper-confirm').addEventListener('click', async () =>
             showMessage('dashboard-message', 'Profile picture updated successfully!', 'success');
         } catch (error) {
             console.error('Profile picture upload error:', error);
-            showMessage('dashboard-message', error.message);
+            showMessage('dashboard-message', error.message, 'error');
         }
 
         document.getElementById('cropper-modal').style.display = 'none';
         cropper.destroy();
         currentFile = null;
-        //rest file input
         document.getElementById('profile-picture-input').value = '';
     });
 });

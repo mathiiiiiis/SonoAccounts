@@ -87,7 +87,6 @@ export function showScreen(screenId) {
     }
 }
 
-
 export function showTab(tabName) {
     document.querySelectorAll('.nav-tab').forEach(tab => {
         tab.classList.remove('active');
@@ -111,22 +110,30 @@ export function showTab(tabName) {
 export async function apiCall(endpoint, options = {}) {
     const url = `${API_BASE}${endpoint}`;
 
-    const headers = {
-        ...options.headers
-    };
-
+    let requestHeaders = { ...options.headers };
     let requestBody = options.body;
+    let isFormData = false;
 
-    if (!headers['Content-Type'] && typeof requestBody === 'object' && !(requestBody instanceof FormData) && !(requestBody instanceof URLSearchParams)) {
-        headers['Content-Type'] = 'application/json';
+    //auto-detect if body is FormData, Blob, or File
+    if (requestBody instanceof Blob || requestBody instanceof File) {
+        const formData = new FormData();
+        const filename = options.filename || (requestBody.name ?? 'upload.png');
+        formData.append('file', requestBody, filename);
+        requestBody = formData;
+        isFormData = true;
+    } else if (requestBody && typeof requestBody === 'object' && !(requestBody instanceof URLSearchParams)) {
+        requestHeaders['Content-Type'] = 'application/json';
         requestBody = JSON.stringify(requestBody);
-    } else if (headers['Content-Type'] === 'application/json' && typeof requestBody === 'object') {
-        requestBody = JSON.stringify(requestBody);
+    }
+    
+    //explicitly delete content-type for FormData
+    if (isFormData) {
+        delete requestHeaders['Content-Type'];
     }
 
     const config = {
         ...options,
-        headers,
+        headers: requestHeaders,
         body: requestBody
     };
 
@@ -140,62 +147,23 @@ export async function apiCall(endpoint, options = {}) {
         let data;
         try {
             data = await response.json();
-        } catch (e) {
-            console.warn('Response not JSON:', e);
+        } catch {
             data = {};
         }
 
         if (!response.ok) {
-            const errorMessage = Array.isArray(data.detail) 
+            const errorMessage = Array.isArray(data.detail)
                 ? data.detail.map(d => d.msg || JSON.stringify(d)).join(', ')
                 : (data.detail || response.statusText || 'API request failed');
             throw new Error(errorMessage);
         }
 
         return data;
-
     } catch (error) {
-        if (error.message.includes('Could not validate credentials') && tokens.refresh) {
-            console.log('Access token expired, attempting to refresh...');
-            try {
-                const refreshResponse = await fetch(`${API_BASE}/users/token/refresh`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ refresh_token: tokens.refresh })
-                });
-
-                if (refreshResponse.ok) {
-                    const newTokens = await refreshResponse.json();
-                    tokens.set(newTokens);
-                    console.log('Tokens refreshed successfully.');
-
-                    const updatedTokens = tokens.get();
-                    config.headers.Authorization = `Bearer ${updatedTokens.access_token}`;
-                    const retryResponse = await fetch(url, config);
-                    if (!retryResponse.ok) {
-                         const retryErrorData = await retryResponse.json().catch(() => ({}));
-                         const retryErrorMessage = Array.isArray(retryErrorData.detail)
-                            ? retryErrorData.detail.map(d => d.msg || JSON.stringify(d)).join(', ')
-                            : (retryErrorData.detail || retryResponse.statusText || 'API request failed on retry');
-                         throw new Error(retryErrorMessage);
-                    }
-                    return await retryResponse.json();
-                } else {
-                    console.error('Failed to refresh token:', await refreshResponse.text());
-                    logout();
-                    throw new Error('Session expired. Please log in again.');
-                }
-            } catch (refreshError) {
-                console.error('Error during token refresh:', refreshError);
-                logout();
-                throw new Error('Session expired. Please log in again.');
-            }
-        }
         console.error('API Call Error:', error);
         throw error;
     }
 }
-
 
 export function logout() {
     tokens.clear();
