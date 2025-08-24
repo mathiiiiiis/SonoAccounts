@@ -1,0 +1,31 @@
+services:
+  web:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: sono-cors-proxy
+    ports:
+      - "${HOST_PORT}:3001"
+    environment:
+      - HOST_PORT=${HOST_PORT}
+      - NODE_ENV=${NODE_ENV}
+      - PORT=${PORT}
+      - API_TARGET=${API_TARGET}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - sono-accounts
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  sono-accounts:
+    driver: bridge
