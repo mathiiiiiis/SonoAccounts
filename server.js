@@ -45,7 +45,6 @@ app.use((req, res, next) => {
 });
 
 //proxy middleware for /api routes
-//ensures body is piped correctly for POST/PUT requests
 app.use('/api', createProxyMiddleware({
   target: API_TARGET,
   changeOrigin: true,
@@ -57,18 +56,6 @@ app.use('/api', createProxyMiddleware({
   onError: (err, req, res) => {
     console.error('API Proxy Error:', err.message);
     res.status(500).json({ error: 'API proxy server error' });
-  },
-  onProxyReq: (proxyReq, req, res) => {
-    console.log(`API Request: ${req.method} ${req.url} -> ${proxyReq.path}`);
-    
-    if (req.method === 'POST' || req.method === 'PUT') {
-        if (req.headers['content-length']) {
-            proxyReq.setHeader('content-length', req.headers['content-length']);
-        }
-        
-        //pipe the request body to the proxy request
-        req.pipe(proxyReq); 
-    }
   }
 }));
 

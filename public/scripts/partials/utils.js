@@ -112,23 +112,24 @@ export async function apiCall(endpoint, options = {}) {
 
     let requestHeaders = { ...options.headers };
     let requestBody = options.body;
-    let isFormData = false;
 
-    //auto-detect if body is FormData, Blob, or File
-    if (requestBody instanceof Blob || requestBody instanceof File) {
-        const formData = new FormData();
-        const filename = options.filename || (requestBody.name ?? 'upload.png');
-        formData.append('file', requestBody, filename);
-        requestBody = formData;
-        isFormData = true;
+    //handle different body types
+    if (requestBody instanceof FormData) {
+        //let the browser set the correct Content-Type with boundary
+        delete requestHeaders['Content-Type'];
+    } else if (requestBody instanceof Blob || requestBody instanceof File) {
+        //check if Content-Type is already set
+        if (!requestHeaders['Content-Type']) {
+            //create FormData to send the file
+            const formData = new FormData();
+            const filename = options.filename || requestBody.name || 'upload.png';
+            formData.append('file', requestBody, filename);
+            requestBody = formData;
+            delete requestHeaders['Content-Type'];
+        }
     } else if (requestBody && typeof requestBody === 'object' && !(requestBody instanceof URLSearchParams)) {
         requestHeaders['Content-Type'] = 'application/json';
         requestBody = JSON.stringify(requestBody);
-    }
-    
-    //explicitly delete content-type for FormData
-    if (isFormData) {
-        delete requestHeaders['Content-Type'];
     }
 
     const config = {

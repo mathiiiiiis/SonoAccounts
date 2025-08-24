@@ -1,3 +1,4 @@
+export const API_BASE = '/api';
 import { apiCall, showMessage, state, tokens } from './utils.js';
 
 let cropper;
@@ -60,10 +61,51 @@ document.getElementById('cropper-cancel').addEventListener('click', () => {
 });
 
 async function uploadFile(file, filename = "profile.png") {
-    return await apiCall("/users/me/upload-profile-picture", {
-        method: "POST",
-        body: file, //raw file/Blob
-        filename: filename,
+    if (!file) {
+        throw new Error('No file provided');
+    }
+    
+    const formData = new FormData();
+    formData.append('file', file, filename);
+    
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    try {
+                        const data = JSON.parse(xhr.responseText);
+                        resolve(data);
+                    } catch (e) {
+                        resolve({});
+                    }
+                } else {
+                    try {
+                        const errorData = JSON.parse(xhr.responseText);
+                        const errorMessage = Array.isArray(errorData.detail)
+                            ? errorData.detail.map(d => d.msg || JSON.stringify(d)).join(', ')
+                            : (errorData.detail || xhr.statusText || 'Upload failed');
+                        reject(new Error(errorMessage));
+                    } catch (e) {
+                        reject(new Error(`HTTP ${xhr.status}: ${xhr.statusText}`));
+                    }
+                }
+            }
+        };
+        
+        xhr.onerror = function() {
+            reject(new Error('Network error during upload'));
+        };
+        
+        const currentTokens = tokens.get();
+        xhr.open('POST', `${API_BASE}/users/me/upload-profile-picture`);
+        
+        if (currentTokens.access_token) {
+            xhr.setRequestHeader('Authorization', `Bearer ${currentTokens.access_token}`);
+        }
+        
+        xhr.send(formData);
     });
 }
 
@@ -117,5 +159,5 @@ document.getElementById('cropper-confirm').addEventListener('click', async () =>
         cropper.destroy();
         currentFile = null;
         document.getElementById('profile-picture-input').value = '';
-    });
+    }, 'image/png'); //specify image format
 });
