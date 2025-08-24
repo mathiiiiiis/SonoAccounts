@@ -25,7 +25,9 @@ app.use((req, res, next) => {
     "script-src 'self' 'unsafe-inline' https://unpkg.com; " +
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; " +
     "font-src 'self' https://fonts.gstatic.com; " +
-    "img-src 'self' cdn.sono.wtf data:;"
+    "img-src 'self' cdn.sono.wtf data:;" +
+    "img-src 'self' https://cdn.sono.wtf data:;" +
+    "img-src 'self' http://cdn.sono.wtf data:;"
   );
   next();
 });
