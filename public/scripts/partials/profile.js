@@ -34,6 +34,7 @@ export async function updateProfile(displayName, bio) {
 
         const updatedUser = await apiCall('/users/me', {
             method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(updateData)
         });
 

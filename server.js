@@ -20,7 +20,13 @@ if (!API_TARGET) {
 
 //security headers
 app.use((req, res, next) => {
-  res.header('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' cdn.sono.wtf;");
+  res.header('Content-Security-Policy', 
+    "default-src 'self'; " +
+    "script-src 'self' 'unsafe-inline' https://unpkg.com; " +
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; " +
+    "font-src 'self' https://fonts.gstatic.com; " +
+    "img-src 'self' cdn.sono.wtf data:;"
+  );
   next();
 });
 
