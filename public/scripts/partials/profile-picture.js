@@ -7,6 +7,27 @@ document.getElementById('profile-picture-input').addEventListener('change', (e) 
     const file = e.target.files[0];
     if (!file) return;
 
+    //only allow image files
+    if (!file.type.startsWith('image/')) {
+        showMessage('dashboard-message', 'Only image files are allowed for profile pictures.', 'error');
+        e.target.value = ''; //reset file input
+        return;
+    }
+
+    //only allow png, jpg, or webp
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+        showMessage('dashboard-message', 'Only PNG, JPG, or WebP images are allowed.', 'error');
+        e.target.value = '';
+        return;
+    }
+
+    //max file size 5mb
+    if (file.size > 5 * 1024 * 1024) {
+        showMessage('dashboard-message', 'File too large (max 5MB).', 'error');
+        e.target.value = '';
+        return;
+    }
+
     currentFile = file; //store current file for skip upload
     const reader = new FileReader();
     reader.onload = (ev) => {
@@ -34,7 +55,7 @@ document.getElementById('cropper-cancel').addEventListener('click', () => {
     document.getElementById('cropper-modal').style.display = 'none';
     if (cropper) cropper.destroy();
     currentFile = null;
-    // Reset file input
+    //reset file input
     document.getElementById('profile-picture-input').value = '';
 });
 
@@ -43,13 +64,15 @@ document.getElementById('cropper-skip').addEventListener('click', async () => {
     if (!currentFile) return;
 
     const formData = new FormData();
-    formData.append('file', currentFile);
+    formData.append('profile_picture', currentFile); //use proper field name
 
     try {
         const updatedUser = await apiCall('/users/me/upload-profile-picture', {
             method: 'POST',
             body: formData,
-            headers: {}
+            headers: {
+                'Authorization': `Bearer ${state.token}` //include auth
+            }
         });
 
         state.currentUser = updatedUser;
@@ -80,13 +103,15 @@ document.getElementById('cropper-confirm').addEventListener('click', async () =>
 
     canvas.toBlob(async (blob) => {
         const formData = new FormData();
-        formData.append('file', blob, 'profile.png');
+        formData.append('profile_picture', blob, 'profile.png'); //proper field name
 
         try {
             const updatedUser = await apiCall('/users/me/upload-profile-picture', {
                 method: 'POST',
                 body: formData,
-                headers: {}
+                headers: {
+                    'Authorization': `Bearer ${state.token}`
+                }
             });
 
             state.currentUser = updatedUser;
@@ -102,7 +127,7 @@ document.getElementById('cropper-confirm').addEventListener('click', async () =>
         document.getElementById('cropper-modal').style.display = 'none';
         cropper.destroy();
         currentFile = null;
-        //rest file input
+        //reset file input
         document.getElementById('profile-picture-input').value = '';
     });
 });

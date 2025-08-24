@@ -10,8 +10,14 @@ export async function loadUserProfile() {
         document.getElementById('update-bio').value = state.currentUser.bio || '';
 
         if (state.currentUser.profile_picture_url) {
+            //force https for csp compliance
+            let picUrl = state.currentUser.profile_picture_url;
+            if (picUrl.startsWith('http://')) {
+                picUrl = picUrl.replace('http://', 'https://');
+            }
+
             document.getElementById('profile-pic').innerHTML = 
-                `<img src="${state.currentUser.profile_picture_url}" alt="Profile" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+                `<img src="${picUrl}" alt="Profile" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
         }
 
         if (state.currentUser.is_superuser === true) {
