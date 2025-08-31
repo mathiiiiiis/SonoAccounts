@@ -10,6 +10,15 @@ window.showTab = showTab;
 window.logout = logout;
 window.loadStats = loadStats;
 
+window.addEventListener('userLoggedIn', async () => {
+    try {
+        await loadUserProfile();
+    } catch (error) {
+        console.error('Failed to load user profile after login:', error);
+        logout();
+    }
+});
+
 window.addEventListener('load', async () => {
     if (tokens.access) {
         try {
@@ -52,4 +61,24 @@ const bioCounter = document.getElementById('bio-counter');
 
 bioInput.addEventListener('input', () => {
     bioCounter.textContent = `${bioInput.value.length}/280`;
+});
+
+const displayNameInput = document.getElementById('update-display-name');
+const displayNameCounter = document.getElementById('display-name-counter');
+
+displayNameInput.addEventListener('input', () => {
+    const length = displayNameInput.value.length;
+    const maxLength = 50;
+    displayNameCounter.textContent = `${length}/${maxLength}`;
+
+    if (length > maxLength) {
+        displayNameCounter.style.color = '#cc5f5f';
+        displayNameInput.style.borderColor = '#cc5f5f';
+    } else if (length > maxLength * 0.9) {
+        displayNameCounter.style.color = '#ffc107';
+        displayNameInput.style.borderColor = '';
+    } else {
+        displayNameCounter.style.color = '#acacac';
+        displayNameInput.style.borderColor = '';
+    }
 });

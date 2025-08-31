@@ -36,7 +36,45 @@ export async function updateProfile(displayName, bio) {
     try {
         const updateData = {};
 
-        if (displayName) updateData.display_name = displayName;
+        //display name validation
+        if (displayName) {
+            const MAX_DISPLAY_NAME_LENGTH = 50;
+            const MIN_DISPLAY_NAME_LENGTH = 1;
+            
+            //trim whitespace
+            const trimmedDisplayName = displayName.trim();
+            
+            if (trimmedDisplayName.length < MIN_DISPLAY_NAME_LENGTH) {
+                showMessage(
+                    'dashboard-message',
+                    'Display name cannot be empty.',
+                    'error'
+                );
+                return;
+            }
+            
+            if (trimmedDisplayName.length > MAX_DISPLAY_NAME_LENGTH) {
+                showMessage(
+                    'dashboard-message',
+                    `Display name cannot exceed ${MAX_DISPLAY_NAME_LENGTH} characters.`,
+                    'error'
+                );
+                return;
+            }
+            
+            //check for valid characters (alphanumeric, spaces, basic punctuation)
+            const validNamePattern = /^[a-zA-Z0-9\s\-_.!@#$%&*()]+$/;
+            if (!validNamePattern.test(trimmedDisplayName)) {
+                showMessage(
+                    'dashboard-message',
+                    'Display name contains invalid characters.',
+                    'error'
+                );
+                return;
+            }
+            
+            updateData.display_name = trimmedDisplayName;
+        }
 
         if (bio) {
             //enforce max length

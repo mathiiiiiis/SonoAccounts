@@ -42,6 +42,15 @@
         margin-bottom: 1.5rem;
     }
 
+    .form-group small {
+        font-size: 0.75rem;
+        margin-top: 0.4rem;
+    }
+    
+    .form-group label .char-limit {
+        display: none;
+    }
+
     input {
         padding: 0.9rem 1rem;
         font-size: 16px;

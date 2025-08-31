@@ -1,4 +1,3 @@
-export const API_BASE = '/api';
 import { apiCall, showMessage, state, tokens } from './utils.js';
 
 let cropper;
@@ -99,7 +98,7 @@ async function uploadFile(file, filename = "profile.png") {
         };
         
         const currentTokens = tokens.get();
-        xhr.open('POST', `${API_BASE}/users/me/upload-profile-picture`);
+        xhr.open('POST', `/api/users/me/upload-profile-picture`);
         
         if (currentTokens.access_token) {
             xhr.setRequestHeader('Authorization', `Bearer ${currentTokens.access_token}`);
