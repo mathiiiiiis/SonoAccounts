@@ -46,6 +46,15 @@ app.use((req, res, next) => {
   }
 });
 
+// Internal health check endpoint (does not depend on external APIs)
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'healthy', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
+
 //proxy middleware for /api routes
 app.use('/api', createProxyMiddleware({
   target: API_TARGET,
@@ -61,33 +70,29 @@ app.use('/api', createProxyMiddleware({
   }
 }));
 
+//api health proxy (proxies to external API health endpoint)
+app.use('/api-health', createProxyMiddleware({
+  target: API_TARGET,
+  changeOrigin: true,
+  secure: true,
+  followRedirects: false,
+  pathRewrite: {
+    '^/api-health': '/health'
+  },
+  onError: (err, req, res) => {
+    console.error('API Health Proxy Error:', err.message);
+    res.status(500).json({ error: 'API health check proxy error' });
+  }
+}));
 
 //body parsers (for non-proxied routes)
 //should be after the proxy to avoid consuming the body before proxying
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-
 //server static files
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/styles/partials', express.static(path.join(__dirname, 'styles', 'partials')));
-
-
-//health check proxy (simple GET proxy without body parsing)
-app.use('/health', createProxyMiddleware({
-  target: API_TARGET,
-  changeOrigin: true,
-  secure: true,
-  followRedirects: false,
-  onError: (err, req, res) => {
-    console.error('Health Proxy Error:', err.message);
-    res.status(500).json({ error: 'Health check proxy error' });
-  },
-  onProxyReq: (proxyReq, req, res) => {
-    console.log(`Health Check: ${req.method} ${req.url} -> ${proxyReq.path}`);
-  }
-}));
-
 
 //catch-all to serve index.html for SPA routing (after all other routes)
 app.get('*', (req, res) => {
@@ -100,6 +105,7 @@ app.listen(PORT, () => {
   console.log(`🚀 CORS Proxy Server running on http://localhost:${PORT}`);
   console.log(`📁 Serving static files from: ${path.join(__dirname, 'public')}`);
   console.log(`🔄 Proxying /api/* to ${API_TARGET}/api/v1/*`);
+  console.log(`🔄 Proxying /api-health to ${API_TARGET}/health`);
   console.log(`ℹ️  Container internal port: ${PORT}, External access port: ${HOST_PORT}`);
 });
 
