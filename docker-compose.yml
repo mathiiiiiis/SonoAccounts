@@ -5,15 +5,15 @@ services:
       dockerfile: Dockerfile
     container_name: sono-cors-proxy
     ports:
-      - "${HOST_PORT}:3001"
+      - "${HOST_PORT}:${PORT:-3001}"
     environment:
       - HOST_PORT=${HOST_PORT}
       - NODE_ENV=${NODE_ENV}
-      - PORT=${PORT}
+      - PORT=${PORT:-3001}
       - API_TARGET=${API_TARGET}
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))"]
+      test: ["CMD", "sh", "-c", "node -e \"const port = process.env.PORT || 3001; require('http').get('http://localhost:' + port + '/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))\""]
       interval: 30s
       timeout: 10s
       retries: 3
