@@ -114,7 +114,7 @@ export const checkHealth = () => axios.get('/health')
 export const checkApiHealth = () => axios.get('/api-health')
 
 // ======== USER / AUTH ========
-export const getPublicKey = () => axios.get('/users/public-key')
+export const getPublicKey = () => api.get('/users/public-key')
 
 export const login = (username, encryptedPassword) => {
   const formData = new URLSearchParams()
