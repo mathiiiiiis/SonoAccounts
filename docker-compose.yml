@@ -5,11 +5,11 @@ services:
       dockerfile: Dockerfile
     container_name: sono-cors-proxy
     ports:
-      - "${HOST_PORT}:${PORT:-3001}"
+      - "${HOST_PORT}:${PORT}"
     environment:
       - HOST_PORT=${HOST_PORT}
       - NODE_ENV=${NODE_ENV}
-      - PORT=${PORT:-3001}
+      - PORT=${PORT}
       - API_TARGET=${API_TARGET}
     restart: unless-stopped
     healthcheck:
@@ -18,6 +18,8 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - sono-accounts
     logging:
@@ -28,4 +30,5 @@ services:
 
 networks:
   sono-accounts:
-    driver: bridge
+    external: true
+    name: sonoapi_sono-net
