@@ -64,7 +64,7 @@ api.interceptors.response.use(
       try {
         const refreshToken = localStorage.getItem('refresh_token')
         if (refreshToken) {
-          const response = await axios.post('/api/users/token/refresh', {
+          const response = await axios.post('/users/token/refresh', {
             refresh_token: refreshToken
           })
 
@@ -114,7 +114,7 @@ export const checkHealth = () => axios.get('/health')
 export const checkApiHealth = () => axios.get('/api-health')
 
 // ======== USER / AUTH ========
-export const getPublicKey = () => axios.get('/api/users/public-key')
+export const getPublicKey = () => axios.get('/users/public-key')
 
 export const login = (username, encryptedPassword) => {
   const formData = new URLSearchParams()
