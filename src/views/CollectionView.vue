@@ -530,6 +530,7 @@ onMounted(() => {
   position: absolute;
   inset: 0;
   overflow: hidden;
+  border-radius: var(--border-radius);
 }
 
 .hero-background img {
@@ -538,7 +539,7 @@ onMounted(() => {
   object-fit: cover;
   filter: blur(60px) saturate(1.2);
   transform: scale(1.3);
-  opacity: 0.15;
+  opacity: 1;
 }
 
 .hero-background::after {
