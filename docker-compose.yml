@@ -27,6 +27,8 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    labels:
+      - "com.docker.compose.project=sono-web"
 
 networks:
   sono-accounts:
