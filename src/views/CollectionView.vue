@@ -1035,11 +1035,7 @@ onMounted(() => {
   .collaborators-section {
     padding: 20px;
   }
-
-  .tracks-section {
-    padding: 20px;
-  }
-
+  
   .add-collaborator {
     flex-wrap: wrap;
   }
