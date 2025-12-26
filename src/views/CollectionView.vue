@@ -756,10 +756,6 @@ onMounted(() => {
   margin: 0;
 }
 
-.tracks-section {
-  padding: 24px 32px;
-}
-
 .empty-tracks {
   display: flex;
   flex-direction: column;
