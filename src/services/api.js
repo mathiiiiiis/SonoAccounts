@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: '/api/v1',
   headers: {
     'Content-Type': 'application/json'
   },
@@ -123,7 +123,7 @@ export const login = (username, encryptedPassword) => {
 
   return api({
     method: 'POST',
-    url: '/v1/users/token',
+    url: '/users/token',
     data: formData.toString(),
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
@@ -135,7 +135,7 @@ export const login = (username, encryptedPassword) => {
 export const register = (userData) => {
   return api({
     method: 'POST',
-    url: '/v1/users/',
+    url: '/users/',
     data: userData,
     headers: {
       'Content-Type': 'application/json',

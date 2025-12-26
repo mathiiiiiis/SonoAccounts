@@ -75,13 +75,12 @@ app.use('/api', createProxyMiddleware({
   changeOrigin: true,
   secure: true,
   followRedirects: false,
-  pathRewrite: (path, req) => {
-    if (path.startsWith('/api/v1')) {
-      return path;
-    }
-    return path.replace(/^\/api/, '/api/v1');
-  },
+  ws: true,
   onProxyReq: (proxyReq, req, res) => {
+    // DEBUG LOG
+    // DONT FORGET IT DUMBAHH MATHIS
+    console.log(`Proxying ${req.method} ${req.url} -> ${API_TARGET}${req.url}`);
+    
     const targetUrl = new URL(API_TARGET);
     proxyReq.setHeader('Host', targetUrl.host);
   },
