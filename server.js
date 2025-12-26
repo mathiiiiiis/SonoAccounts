@@ -63,14 +63,18 @@ app.get('/health', (req, res) => {
 //proxy middleware for /api routes
 app.use('/api', createProxyMiddleware({
   target: API_TARGET,
-  changeOrigin: false,
+  changeOrigin: true,
   secure: true,
   followRedirects: false,
-  pathRewrite: {
-    '^/api': '/api/v1'
+  pathRewrite: (path, req) => {
+    if (path.startsWith('/api/v1')) {
+      return path;
+    }
+    return path.replace(/^\/api/, '/api/v1');
   },
   onProxyReq: (proxyReq, req, res) => {
-    proxyReq.setHeader('Host', req.headers.host);
+    const targetUrl = new URL(API_TARGET);
+    proxyReq.setHeader('Host', targetUrl.host);
   },
   onError: (err, req, res) => {
     console.error('API Proxy Error:', err.message);
