@@ -121,7 +121,7 @@ export const login = (username, encryptedPassword) => {
   formData.append('username', username)
   formData.append('password', encryptedPassword)
 
-  return api.post('/users/token', formData, {
+  return api.post('/v1/users/token', formData, {
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
       'X-Password-Encrypted': 'true'
