@@ -121,18 +121,10 @@ export const login = (username, encryptedPassword) => {
   formData.append('username', username)
   formData.append('password', encryptedPassword)
 
-  // I DONT CARE THAT THIS IS A DEBUG LOG IN PROD CODE LEAVE ME ALONE!!
-  console.log('Login request:', {
+  return api({
     method: 'POST',
     url: '/v1/users/token',
-    body: formData.toString(),
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'X-Password-Encrypted': 'true'
-    }
-  })
-
-  return api.post('/v1/users/token', formData.toString(), {
+    data: formData.toString(),
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
       'X-Password-Encrypted': 'true'
@@ -141,8 +133,12 @@ export const login = (username, encryptedPassword) => {
 }
 
 export const register = (userData) => {
-  return api.post('/users/', userData, {
+  return api({
+    method: 'POST',
+    url: '/v1/users/',
+    data: userData,
     headers: {
+      'Content-Type': 'application/json',
       'X-Password-Encrypted': 'true'
     }
   })
