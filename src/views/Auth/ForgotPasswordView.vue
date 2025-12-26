@@ -3,39 +3,37 @@
     <div class="auth-container">
       <div class="auth-header">
         <h1 class="auth-logo">Sono Web</h1>
-        <p class="auth-subtitle">Sign in to your account</p>
+        <p class="auth-subtitle">Reset your password</p>
       </div>
 
-      <form @submit.prevent="handleLogin" class="auth-form">
+      <div v-if="success" class="auth-success">
+        <p style="margin-bottom: 12px;">
+          <strong>Check your email!</strong>
+        </p>
+        <p style="margin-bottom: 0;">
+          If an account exists with that email, we've sent password reset instructions. 
+          The link will expire in 1 hour.
+        </p>
+      </div>
+
+      <form v-else @submit.prevent="handleForgotPassword" class="auth-form">
         <div v-if="error" class="auth-error">
           {{ error }}
         </div>
 
         <div class="form-group">
-          <label class="form-label">Username or Email</label>
+          <label class="form-label">Email Address</label>
           <input
-            v-model="credentials.username"
-            type="text"
-            placeholder="Enter your username or email"
+            v-model="email"
+            type="email"
+            placeholder="Enter your email address"
             required
-            autocomplete="username"
+            autocomplete="email"
+            :disabled="loading"
           />
-        </div>
-
-        <div class="form-group">
-          <div class="password-header">
-            <label class="form-label">Password</label>
-            <router-link to="/forgot-password" class="forgot-password-link">
-              Forgot password?
-            </router-link>
+          <div class="form-hint">
+            We'll send a password reset link to this email address.
           </div>
-          <input
-            v-model="credentials.password"
-            type="password"
-            placeholder="Enter your password"
-            required
-            autocomplete="current-password"
-          />
         </div>
 
         <button
@@ -44,14 +42,14 @@
           :disabled="loading"
           style="width: 100%;"
         >
-          {{ loading ? 'Signing in...' : 'Sign In' }}
+          {{ loading ? 'Sending...' : 'Send Reset Link' }}
         </button>
       </form>
 
       <div class="auth-footer">
         <p>
-          Don't have an account?
-          <router-link to="/register" class="auth-link">Create one</router-link>
+          Remember your password?
+          <router-link to="/login" class="auth-link">Sign in</router-link>
         </p>
       </div>
     </div>
@@ -60,34 +58,26 @@
 
 <script setup>
 import { ref } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
-import { useUIStore } from '@/stores/ui'
+import * as api from '@/services/api'
 
-const router = useRouter()
-const route = useRoute()
-const authStore = useAuthStore()
-const uiStore = useUIStore()
-
-const credentials = ref({
-  username: '',
-  password: ''
-})
-
+const email = ref('')
 const loading = ref(false)
 const error = ref(null)
+const success = ref(false)
 
-async function handleLogin() {
+async function handleForgotPassword() {
   loading.value = true
   error.value = null
 
   try {
-    await authStore.login(credentials.value.username, credentials.value.password)
-    //redirect to route
-    const redirect = route.query.redirect || '/'
-    router.push(redirect)
+    await api.forgotPassword(email.value)
+    success.value = true
   } catch (err) {
-    error.value = err.response?.data?.detail || 'Login failed. Please check your credentials.'
+    if (err.response?.status === 429) {
+      error.value = 'Too many requests. Please try again later.'
+    } else {
+      error.value = 'An error occurred. Please try again.'
+    }
   } finally {
     loading.value = false
   }
@@ -146,22 +136,15 @@ async function handleLogin() {
   font-size: 14px;
 }
 
-.password-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.forgot-password-link {
-  font-size: 13px;
-  color: var(--text-secondary);
-  text-decoration: none;
-  transition: color var(--transition-fast);
-}
-
-.forgot-password-link:hover {
-  color: var(--text-light);
+.auth-success {
+  padding: 16px;
+  border-radius: var(--border-radius-sm);
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
+  color: var(--success-text);
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 24px;
 }
 
 .auth-footer {

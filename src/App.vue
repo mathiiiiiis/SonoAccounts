@@ -78,7 +78,7 @@ const uiStore = useUIStore()
 const audioElement = ref(null)
 
 const isAuthRoute = computed(() => {
-  return route.name === 'Login' || route.name === 'Register'
+  return route.meta.requiresGuest === true
 })
 
 onMounted(() => {

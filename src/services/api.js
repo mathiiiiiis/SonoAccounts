@@ -166,6 +166,22 @@ export const uploadProfilePicture = (file) => {
   })
 }
 
+// ======== PASSWORD RESET ========
+export const forgotPassword = (email) => {
+  return api.post('/users/forgot-password', { email })
+}
+
+export const verifyResetToken = (token) => {
+  return api.post('/users/verify-reset-token', { token })
+}
+
+export const resetPassword = (token, newPassword) => {
+  return api.post('/users/reset-password', {
+    token,
+    new_password: newPassword
+  })
+}
+
 // ======== GDPR / CONSENT ========
 export const recordConsent = (consentData) => {
   return api.post('/users/me/consent', consentData)
