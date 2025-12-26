@@ -95,7 +95,6 @@ import { useRouter } from 'vue-router'
 import { useUIStore } from '@/stores/ui'
 import { usePlayerStore } from '@/stores/player'
 import { useDataStore } from '@/stores/data'
-import * as api from '@/services/api'
 
 const router = useRouter()
 const uiStore = useUIStore()
@@ -134,13 +133,11 @@ function getFilterCount(filterId) {
 }
 
 async function loadData() {
-  // Only show loading if caches are empty
   if (dataStore.audioFiles.length === 0 && dataStore.collections.length === 0) {
     loading.value = true
   }
 
   try {
-    // Fetch from cache (will background refresh if stale)
     await Promise.all([
       dataStore.fetchAudioFiles(),
       dataStore.fetchCollections()
