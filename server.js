@@ -39,16 +39,15 @@ app.use((req, res, next) => {
 
 //cors headers
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Origin', 'https://web.sono.wtf', 'https://sono.wtf');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-Password-Encrypted');
+  res.header('Access-Control-Allow-Credentials', 'true');
 
   if (req.method === 'OPTIONS') {
-    console.log('CORS Preflight (OPTIONS) request received.');
-    res.sendStatus(200);
-  } else {
-    next();
+    return res.status(204).send();
   }
+  next();
 });
 
 //internal health check endpoint
