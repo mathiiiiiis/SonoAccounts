@@ -2,15 +2,19 @@
   <div
     class="track-row"
     :class="{ 'is-dragging': isDragging, 'drag-over': isDragOver, 'can-reorder': canReorder }"
-    :draggable="canReorder"
-    @click="$emit('play')"
+    :draggable="canReorder && !isTouchDevice"
+    :data-index="index"
+    @click="hasMoved ? null : $emit('play')"
     @dragstart="handleDragStart"
     @dragend="handleDragEnd"
     @dragover="handleDragOver"
     @dragleave="handleDragLeave"
     @drop="handleDrop"
+    @touchstart="handleTouchStart"
+    @touchmove="handleTouchMove"
+    @touchend="handleTouchEnd"
   >
-    <div v-if="canReorder" class="drag-handle" @mousedown.stop>
+    <div v-if="canReorder" class="drag-handle" @mousedown.stop @touchstart.stop>
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <circle cx="9" cy="6" r="1.5" fill="currentColor"/>
         <circle cx="15" cy="6" r="1.5" fill="currentColor"/>
@@ -77,7 +81,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 
 const props = defineProps({
   track: {
@@ -114,9 +118,27 @@ const emit = defineEmits(['play', 'add-to-collection', 'delete', 'edit', 'reorde
 
 const isDragging = ref(false)
 const isDragOver = ref(false)
+const isTouchDevice = ref(false)
+const touchStartY = ref(0)
+const hasMoved = ref(false)
 
+// Touch drag state
+let touchDragData = null
+let scrollInterval = null
+
+onMounted(() => {
+  isTouchDevice.value = 'ontouchstart' in window || navigator.maxTouchPoints > 0
+})
+
+onUnmounted(() => {
+  if (scrollInterval) {
+    clearInterval(scrollInterval)
+  }
+})
+
+// Desktop drag handlers
 function handleDragStart(e) {
-  if (!props.canReorder) return
+  if (!props.canReorder || isTouchDevice.value) return
   isDragging.value = true
   e.dataTransfer.effectAllowed = 'move'
   e.dataTransfer.setData('text/plain', JSON.stringify({
@@ -131,7 +153,7 @@ function handleDragEnd() {
 }
 
 function handleDragOver(e) {
-  if (!props.canReorder) return
+  if (!props.canReorder || isTouchDevice.value) return
   e.preventDefault()
   e.dataTransfer.dropEffect = 'move'
   isDragOver.value = true
@@ -142,7 +164,7 @@ function handleDragLeave() {
 }
 
 function handleDrop(e) {
-  if (!props.canReorder) return
+  if (!props.canReorder || isTouchDevice.value) return
   e.preventDefault()
   isDragOver.value = false
 
@@ -154,6 +176,107 @@ function handleDrop(e) {
   } catch (err) {
     console.error('Failed to parse drag data:', err)
   }
+}
+
+function handleTouchStart(e) {
+  if (!props.canReorder || !isTouchDevice.value) return
+  
+  const touch = e.touches[0]
+  touchStartY.value = touch.clientY
+  hasMoved.value = false
+  
+  touchDragData = {
+    index: props.index,
+    trackId: props.trackId,
+    startY: touch.clientY
+  }
+}
+
+function handleTouchMove(e) {
+  if (!props.canReorder || !isTouchDevice.value || !touchDragData) return
+  
+  const touch = e.touches[0]
+  const deltaY = Math.abs(touch.clientY - touchStartY.value)
+
+  if (deltaY > 10) {
+    hasMoved.value = true
+    isDragging.value = true
+    e.preventDefault()
+    
+    const viewportHeight = window.innerHeight
+    const scrollThreshold = 100
+    const scrollSpeed = 5
+    
+    if (touch.clientY < scrollThreshold) {
+      if (!scrollInterval) {
+        scrollInterval = setInterval(() => {
+          window.scrollBy(0, -scrollSpeed)
+        }, 16)
+      }
+    } else if (touch.clientY > viewportHeight - scrollThreshold) {
+      if (!scrollInterval) {
+        scrollInterval = setInterval(() => {
+          window.scrollBy(0, scrollSpeed)
+        }, 16)
+      }
+    } else {
+      if (scrollInterval) {
+        clearInterval(scrollInterval)
+        scrollInterval = null
+      }
+    }
+
+    const elementUnder = document.elementFromPoint(touch.clientX, touch.clientY)
+    const trackRowUnder = elementUnder?.closest('.track-row')
+    
+    document.querySelectorAll('.track-row.drag-over').forEach(el => {
+      el.classList.remove('drag-over')
+    })
+    
+    if (trackRowUnder && trackRowUnder !== e.currentTarget) {
+      trackRowUnder.classList.add('drag-over')
+    }
+  }
+}
+
+function handleTouchEnd(e) {
+  if (!props.canReorder || !isTouchDevice.value || !touchDragData) return
+
+  if (scrollInterval) {
+    clearInterval(scrollInterval)
+    scrollInterval = null
+  }
+  
+  isDragging.value = false
+  
+  if (hasMoved.value) {
+    e.preventDefault()
+    
+    const touch = e.changedTouches[0]
+    const elementUnder = document.elementFromPoint(touch.clientX, touch.clientY)
+    const trackRowUnder = elementUnder?.closest('.track-row')
+
+    document.querySelectorAll('.track-row.drag-over').forEach(el => {
+      el.classList.remove('drag-over')
+    })
+    
+    if (trackRowUnder) {
+      const toIndexStr = trackRowUnder.getAttribute('data-index')
+      if (toIndexStr !== null) {
+        const toIndex = parseInt(toIndexStr)
+        if (toIndex !== touchDragData.index) {
+          emit('reorder', { 
+            fromIndex: touchDragData.index, 
+            toIndex: toIndex, 
+            trackId: touchDragData.trackId 
+          })
+        }
+      }
+    }
+  }
+  
+  touchDragData = null
+  hasMoved.value = false
 }
 
 function formatDuration(seconds) {
