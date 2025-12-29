@@ -225,7 +225,6 @@ function handleResultClick(result) {
 function playResult(result) {
   if (result.type === 'track') {
     playerStore.playTrack(result.data)
-    uiStore.showNotification(`Playing ${result.title}`, 'success')
   } else if (result.type === 'collection') {
     playCollection(result.data)
   }
@@ -239,7 +238,6 @@ async function playCollection(collection) {
     if (tracks.length > 0) {
       const audioFiles = tracks.map(t => t.audio_file)
       playerStore.playTrack(audioFiles[0], audioFiles, 0, fullCollection)
-      uiStore.showNotification(`Playing ${collection.title}`, 'success')
     } else {
       uiStore.showNotification(`${collection.title} has no tracks`, 'info')
     }

@@ -1,5 +1,26 @@
 <template>
-  <div class="track-row" @click="$emit('play')">
+  <div
+    class="track-row"
+    :class="{ 'is-dragging': isDragging, 'drag-over': isDragOver, 'can-reorder': canReorder }"
+    :draggable="canReorder"
+    @click="$emit('play')"
+    @dragstart="handleDragStart"
+    @dragend="handleDragEnd"
+    @dragover="handleDragOver"
+    @dragleave="handleDragLeave"
+    @drop="handleDrop"
+  >
+    <div v-if="canReorder" class="drag-handle" @mousedown.stop>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="9" cy="6" r="1.5" fill="currentColor"/>
+        <circle cx="15" cy="6" r="1.5" fill="currentColor"/>
+        <circle cx="9" cy="12" r="1.5" fill="currentColor"/>
+        <circle cx="15" cy="12" r="1.5" fill="currentColor"/>
+        <circle cx="9" cy="18" r="1.5" fill="currentColor"/>
+        <circle cx="15" cy="18" r="1.5" fill="currentColor"/>
+      </svg>
+    </div>
+
     <div class="track-index">
       <span class="track-number">{{ index + 1 }}</span>
       <button class="track-play-btn">
@@ -56,12 +77,16 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 
 const props = defineProps({
   track: {
     type: Object,
     required: true
+  },
+  trackId: {
+    type: Number,
+    default: null
   },
   index: {
     type: Number,
@@ -75,13 +100,61 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
+  canReorder: {
+    type: Boolean,
+    default: false
+  },
   collection: {
     type: Object,
     default: null
   }
 })
 
-defineEmits(['play', 'add-to-collection', 'delete', 'edit'])
+const emit = defineEmits(['play', 'add-to-collection', 'delete', 'edit', 'reorder'])
+
+const isDragging = ref(false)
+const isDragOver = ref(false)
+
+function handleDragStart(e) {
+  if (!props.canReorder) return
+  isDragging.value = true
+  e.dataTransfer.effectAllowed = 'move'
+  e.dataTransfer.setData('text/plain', JSON.stringify({
+    index: props.index,
+    trackId: props.trackId
+  }))
+}
+
+function handleDragEnd() {
+  isDragging.value = false
+  isDragOver.value = false
+}
+
+function handleDragOver(e) {
+  if (!props.canReorder) return
+  e.preventDefault()
+  e.dataTransfer.dropEffect = 'move'
+  isDragOver.value = true
+}
+
+function handleDragLeave() {
+  isDragOver.value = false
+}
+
+function handleDrop(e) {
+  if (!props.canReorder) return
+  e.preventDefault()
+  isDragOver.value = false
+
+  try {
+    const data = JSON.parse(e.dataTransfer.getData('text/plain'))
+    if (data.index !== props.index) {
+      emit('reorder', { fromIndex: data.index, toIndex: props.index, trackId: data.trackId })
+    }
+  } catch (err) {
+    console.error('Failed to parse drag data:', err)
+  }
+}
 
 function formatDuration(seconds) {
   if (!seconds) return '--:--'
@@ -101,17 +174,53 @@ const artistName = computed(() => {
 <style scoped>
 .track-row {
   display: grid;
-  grid-template-columns: 40px 1fr auto auto;
+  grid-template-columns: 40px 1fr auto;
   align-items: center;
   gap: 16px;
   padding: 6px 16px;
   border-radius: var(--border-radius-sm);
   cursor: pointer;
-  transition: background var(--transition-fast);
+  transition: background var(--transition-fast), opacity var(--transition-fast), border-color var(--transition-fast);
+  border: 2px solid transparent;
+}
+
+.track-row.can-reorder {
+  grid-template-columns: 24px 40px 1fr auto;
+}
+
+.track-row.is-dragging {
+  opacity: 0.5;
+}
+
+.track-row.drag-over {
+  border-color: var(--text-light);
+  background: var(--bg-surface);
 }
 
 .track-row:hover {
   background: var(--bg-surface);
+}
+
+.drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  cursor: grab;
+  transition: color var(--transition-fast);
+  padding: 4px;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.track-row:hover {
+  opacity: 1;
+}
+
+.drag-handle:hover {
+  color: var(--text-light);
 }
 
 .track-index {

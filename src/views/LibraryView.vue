@@ -17,12 +17,6 @@
 
     <div v-else class="library-content">
       <div v-if="collections.length === 0" class="empty-state">
-        <div class="empty-illustration">
-          <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <circle cx="12" cy="12" r="10"/>
-            <path d="M12 8v8M12 16h.01"/>
-          </svg>
-        </div>
         <p class="empty-text">No collections yet</p>
       </div>
 
@@ -203,10 +197,6 @@ onUnmounted(() => {
   padding: 48px;
 }
 
-.empty-illustration {
-  opacity: 0.3;
-}
-
 .empty-text {
   font-size: 14px;
   color: var(--text-secondary);
@@ -282,11 +272,6 @@ onUnmounted(() => {
   .empty-state {
     min-height: 250px;
     gap: 16px;
-  }
-
-  .empty-illustration svg {
-    width: 60px;
-    height: 60px;
   }
 
   .empty-text {

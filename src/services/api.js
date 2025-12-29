@@ -206,9 +206,65 @@ export const deleteAccountImmediately = (password, deletionType = 'hard') => {
 export const getDeletionStatus = () => api.get('/users/me/deletion-status')
 
 // ======== AUDIO FILES ========
+function normalizeAudioFile(file) {
+  const fileName = file.name.toLowerCase()
+  const fileType = file.type.toLowerCase()
+
+  //formats with inconsistent browser reporting
+  const mimeNormalization = {
+    wav: {
+      extensions: ['.wav'],
+      variants: ['audio/x-wav', 'audio/wave', 'audio/x-wave', 'audio/vnd.wave'],
+      normalized: 'audio/wav'
+    },
+    mp3: {
+      extensions: ['.mp3'],
+      variants: ['audio/mp3', 'audio/x-mp3', 'audio/x-mpeg'],
+      normalized: 'audio/mpeg'
+    },
+    ogg: {
+      extensions: ['.ogg', '.oga'],
+      variants: ['audio/x-ogg', 'application/ogg'],
+      normalized: 'audio/ogg'
+    },
+    flac: {
+      extensions: ['.flac'],
+      variants: ['audio/x-flac'],
+      normalized: 'audio/flac'
+    },
+    aac: {
+      extensions: ['.aac'],
+      variants: ['audio/x-aac', 'audio/aacp'],
+      normalized: 'audio/aac'
+    },
+    m4a: {
+      extensions: ['.m4a'],
+      variants: ['audio/x-m4a', 'audio/m4a'],
+      normalized: 'audio/mp4'
+    },
+    webm: {
+      extensions: ['.webm'],
+      variants: ['audio/x-webm'],
+      normalized: 'audio/webm'
+    }
+  }
+
+  for (const format of Object.values(mimeNormalization)) {
+    const matchesExtension = format.extensions.some(ext => fileName.endsWith(ext))
+    const matchesVariant = format.variants.includes(fileType)
+
+    if ((matchesExtension || matchesVariant) && fileType !== format.normalized) {
+      return new File([file], file.name, { type: format.normalized })
+    }
+  }
+
+  return file
+}
+
 export const uploadAudioFile = (file, metadata = {}) => {
   const formData = new FormData()
-  formData.append('file', file)
+  const normalizedFile = normalizeAudioFile(file)
+  formData.append('file', normalizedFile)
 
   if (metadata.title) formData.append('title', metadata.title)
   if (metadata.description) formData.append('description', metadata.description)
@@ -280,7 +336,8 @@ export const removeTrackFromCollection = (collectionId, trackId) => {
 
 export const reorderTrack = (collectionId, trackId, newOrder) => {
   return api.put(`/collections/${collectionId}/tracks/${trackId}/reorder`, {
-    track_order: newOrder
+    track_id: trackId,
+    new_order: newOrder
   })
 }
 

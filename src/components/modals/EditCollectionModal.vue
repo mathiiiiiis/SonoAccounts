@@ -71,7 +71,7 @@
           </label>
         </div>
 
-        <div v-if="formData.collection_type === 'playlist'" class="form-group">
+        <div class="form-group">
           <label class="checkbox-label">
             <input type="checkbox" v-model="formData.is_collaborative" />
             <span>Allow collaborators</span>
@@ -176,9 +176,7 @@ async function handleSubmit() {
     if (formData.value.artist && formData.value.collection_type === 'album') {
       updateData.artist = formData.value.artist
     }
-    if (formData.value.collection_type === 'playlist') {
-      updateData.is_collaborative = formData.value.is_collaborative
-    }
+    updateData.is_collaborative = formData.value.is_collaborative
 
     await api.updateCollection(formData.value.id, updateData)
 

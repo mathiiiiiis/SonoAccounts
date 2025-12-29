@@ -106,11 +106,39 @@
         </button>
       </div>
 
+      <div class="search-filter-bar">
+        <div class="search-box">
+          <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input
+            v-model="userSearch"
+            type="text"
+            placeholder="Search users by username or email..."
+            class="search-input"
+          />
+        </div>
+        <div class="filter-options">
+          <select v-model="userFilter" class="filter-select">
+            <option value="all">All Users</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+            <option value="admin">Admins</option>
+          </select>
+          <select v-model="userSort" class="filter-select">
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+            <option value="username">Username A-Z</option>
+            <option value="uploads">Most Uploads</option>
+          </select>
+        </div>
+      </div>
+
       <div v-if="loading" class="loading-spinner">
         <div class="spinner"></div>
       </div>
 
-      <div v-else-if="users.length > 0" class="users-table">
+      <div v-else-if="filteredUsers.length > 0" class="users-table">
         <div class="table-header">
           <div class="col-id">ID</div>
           <div class="col-username">Username</div>
@@ -121,13 +149,13 @@
           <div class="col-actions">Actions</div>
         </div>
         <div
-          v-for="user in users"
+          v-for="user in filteredUsers"
           :key="user.id"
           class="table-row"
         >
           <div class="col-id">{{ user.id }}</div>
-          <div class="col-username">{{ user.username }}</div>
-          <div class="col-email">{{ user.email }}</div>
+          <div class="col-username" v-html="highlightText(user.username, userSearch)"></div>
+          <div class="col-email" v-html="highlightText(user.email, userSearch)"></div>
           <div class="col-role">
             <span :class="['role-badge', { superuser: user.is_superuser }]">
               {{ user.is_superuser ? 'Admin' : 'User' }}
@@ -194,18 +222,31 @@
         </button>
       </div>
 
-      <div v-if="collectionStats" class="mini-stats">
-        <div class="mini-stat">
-          <div class="mini-stat-label">Total Collections</div>
-          <div class="mini-stat-value">{{ collectionStats.total_collections || 0 }}</div>
+      <div class="search-filter-bar">
+        <div class="search-box">
+          <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input
+            v-model="collectionSearch"
+            type="text"
+            placeholder="Search collections by title or owner..."
+            class="search-input"
+          />
         </div>
-        <div class="mini-stat">
-          <div class="mini-stat-label">Albums</div>
-          <div class="mini-stat-value">{{ collectionStats.albums || 0 }}</div>
-        </div>
-        <div class="mini-stat">
-          <div class="mini-stat-label">Playlists</div>
-          <div class="mini-stat-value">{{ collectionStats.playlists || 0 }}</div>
+        <div class="filter-options">
+          <select v-model="collectionFilter" class="filter-select">
+            <option value="all">All Types</option>
+            <option value="album">Albums</option>
+            <option value="playlist">Playlists</option>
+            <option value="compilation">Compilations</option>
+          </select>
+          <select v-model="collectionSort" class="filter-select">
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+            <option value="title">Title A-Z</option>
+            <option value="tracks">Most Tracks</option>
+          </select>
         </div>
       </div>
 
@@ -221,10 +262,10 @@
         <div class="spinner"></div>
       </div>
 
-      <div v-else-if="recentCollections.length > 0" class="collections-list">
-        <h3>Collections</h3>
+      <div v-else-if="filteredCollections.length > 0" class="collections-list">
+        <h3>Collections ({{ filteredCollections.length }})</h3>
         <div
-          v-for="collection in recentCollections"
+          v-for="collection in filteredCollections"
           :key="collection.id"
           class="collection-item"
         >
@@ -235,9 +276,9 @@
             @error="handleImageError"
           />
           <div class="collection-info">
-            <div class="collection-title">{{ collection.title }}</div>
+            <div class="collection-title" v-html="highlightText(collection.title, collectionSearch)"></div>
             <div class="collection-meta">
-              {{ formatCollectionType(collection.collection_type) }} • {{ getOwnerName(collection) }}
+              <span v-html="formatCollectionType(collection.collection_type)"></span> • <span v-html="highlightText(getOwnerName(collection), collectionSearch)"></span>
               <span v-if="collection.track_count || collection.tracks_count || collection.total_tracks">
                 • {{ collection.track_count || collection.tracks_count || collection.total_tracks || 0 }} tracks
               </span>
@@ -248,6 +289,12 @@
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                 <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+            <button @click="confirmDeleteCollection(collection)" class="icon-button danger" title="Delete Collection" :disabled="actionInProgress">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
               </svg>
             </button>
           </div>
@@ -274,13 +321,38 @@
         </button>
       </div>
 
+      <div class="search-filter-bar">
+        <div class="search-box">
+          <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input
+            v-model="audioSearch"
+            type="text"
+            placeholder="Search audio by title or owner..."
+            class="search-input"
+          />
+        </div>
+        <div class="filter-options">
+          <select v-model="audioSort" class="filter-select">
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+            <option value="title">Title A-Z</option>
+            <option value="size">Largest First</option>
+          </select>
+        </div>
+      </div>
+
       <div v-if="loading" class="loading-spinner">
         <div class="spinner"></div>
       </div>
 
-      <div v-else-if="audioFiles.length > 0" class="audio-files-list">
+      <div v-else-if="filteredAudioFiles.length > 0" class="audio-files-list">
+        <div class="audio-files-header">
+          <span>{{ filteredAudioFiles.length }} file(s)</span>
+        </div>
         <div
-          v-for="file in audioFiles.slice(0, 50)"
+          v-for="file in paginatedAudioFiles"
           :key="file.id"
           class="audio-file-item"
         >
@@ -291,27 +363,40 @@
             @error="handleImageError"
           />
           <div class="audio-info">
-            <div class="audio-title">{{ file.title || file.original_filename || 'Untitled' }}</div>
+            <div class="audio-title" v-html="highlightText(file.title || file.original_filename || 'Untitled', audioSearch)"></div>
             <div class="audio-meta">
               {{ formatBytes(file.file_size || 0) }}
             </div>
           </div>
-          <div class="audio-owner">
-            {{ getOwnerName(file) }}
+          <div class="audio-owner" v-html="highlightText(getOwnerName(file), audioSearch)">
+          </div>
+          <div class="audio-actions">
+            <button @click="confirmDeleteAudioFile(file)" class="icon-button danger" title="Delete Audio File" :disabled="actionInProgress">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              </svg>
+            </button>
           </div>
         </div>
-        <div v-if="audioFiles.length > 50" class="more-items">
-          + {{ audioFiles.length - 50 }} more files
+        <div v-if="filteredAudioFiles.length > audioPageSize" class="pagination-controls">
+          <button @click="audioPage = Math.max(1, audioPage - 1)" :disabled="audioPage === 1" class="btn btn-secondary btn-sm">
+            Previous
+          </button>
+          <span class="page-info">Page {{ audioPage }} of {{ totalAudioPages }}</span>
+          <button @click="audioPage = Math.min(totalAudioPages, audioPage + 1)" :disabled="audioPage >= totalAudioPages" class="btn btn-secondary btn-sm">
+            Next
+          </button>
         </div>
       </div>
 
-      <div v-else-if="!loading && audioFiles.length === 0" class="empty-state">
+      <div v-else-if="!loading && filteredAudioFiles.length === 0" class="empty-state">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M9 18V5l12-2v13"/>
           <circle cx="6" cy="18" r="3"/>
           <circle cx="18" cy="16" r="3"/>
         </svg>
-        <p>No audio files found</p>
+        <p>{{ audioSearch ? 'No audio files match your search' : 'No audio files found' }}</p>
       </div>
     </div>
 
@@ -527,7 +612,19 @@
             </div>
             <div class="detail-row">
               <span class="detail-label">Total Collections:</span>
-              <span class="detail-value">{{ userStats.total_collections || 0 }}</span>
+              <span class="detail-value">{{ userCollectionStats?.total_collections || userStats.total_collections || 0 }}</span>
+            </div>
+            <div v-if="userCollectionStats" class="detail-row">
+              <span class="detail-label">Albums:</span>
+              <span class="detail-value">{{ userCollectionStats.albums || 0 }}</span>
+            </div>
+            <div v-if="userCollectionStats" class="detail-row">
+              <span class="detail-label">Playlists:</span>
+              <span class="detail-value">{{ userCollectionStats.playlists || 0 }}</span>
+            </div>
+            <div v-if="userCollectionStats" class="detail-row">
+              <span class="detail-label">Compilations:</span>
+              <span class="detail-value">{{ userCollectionStats.compilations || 0 }}</span>
             </div>
           </div>
           <div v-else class="loading-stats">
@@ -643,6 +740,7 @@ const newUploadLimit = ref(0)
 const processingDeletions = ref(false)
 const deletionProcessResult = ref(null)
 const userStats = ref(null)
+const userCollectionStats = ref(null)
 const collectionStats = ref(null)
 const recentCollections = ref([])
 const audioFiles = ref([])
@@ -657,8 +755,144 @@ const announcementForm = ref({
   is_published: true
 })
 
+//search, filter & sort state
+const userSearch = ref('')
+const userFilter = ref('all')
+const userSort = ref('newest')
+
+const collectionSearch = ref('')
+const collectionFilter = ref('all')
+const collectionSort = ref('newest')
+
+const audioSearch = ref('')
+const audioSort = ref('newest')
+const audioPage = ref(1)
+const audioPageSize = 50
+
 const defaultAlbumCover = defaultAlbumCoverSvg
 const defaultTrackCover = defaultTrackCoverSvg
+
+const filteredUsers = computed(() => {
+  let result = [...users.value]
+
+  //apply search filter
+  if (userSearch.value) {
+    const search = userSearch.value.toLowerCase()
+    result = result.filter(user =>
+      user.username?.toLowerCase().includes(search) ||
+      user.email?.toLowerCase().includes(search)
+    )
+  }
+
+  //apply status/role filter
+  switch (userFilter.value) {
+    case 'active':
+      result = result.filter(user => user.is_active)
+      break
+    case 'inactive':
+      result = result.filter(user => !user.is_active)
+      break
+    case 'admin':
+      result = result.filter(user => user.is_superuser)
+      break
+  }
+
+  //apply sorting
+  switch (userSort.value) {
+    case 'newest':
+      result.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+      break
+    case 'oldest':
+      result.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0))
+      break
+    case 'username':
+      result.sort((a, b) => (a.username || '').localeCompare(b.username || ''))
+      break
+    case 'uploads':
+      result.sort((a, b) => (b.total_audio_files || 0) - (a.total_audio_files || 0))
+      break
+  }
+
+  return result
+})
+
+const filteredCollections = computed(() => {
+  let result = [...recentCollections.value]
+
+  //apply search filter
+  if (collectionSearch.value) {
+    const search = collectionSearch.value.toLowerCase()
+    result = result.filter(collection =>
+      collection.title?.toLowerCase().includes(search) ||
+      getOwnerName(collection).toLowerCase().includes(search)
+    )
+  }
+
+  //apply type filter
+  if (collectionFilter.value !== 'all') {
+    result = result.filter(collection => collection.collection_type === collectionFilter.value)
+  }
+
+  //apply sorting
+  switch (collectionSort.value) {
+    case 'newest':
+      result.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+      break
+    case 'oldest':
+      result.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0))
+      break
+    case 'title':
+      result.sort((a, b) => (a.title || '').localeCompare(b.title || ''))
+      break
+    case 'tracks':
+      result.sort((a, b) =>
+        (b.track_count || b.tracks_count || b.total_tracks || 0) -
+        (a.track_count || a.tracks_count || a.total_tracks || 0)
+      )
+      break
+  }
+
+  return result
+})
+
+const filteredAudioFiles = computed(() => {
+  let result = [...audioFiles.value]
+
+  //apply search filter
+  if (audioSearch.value) {
+    const search = audioSearch.value.toLowerCase()
+    result = result.filter(file =>
+      file.title?.toLowerCase().includes(search) ||
+      file.original_filename?.toLowerCase().includes(search) ||
+      getOwnerName(file).toLowerCase().includes(search)
+    )
+  }
+
+  //apply sorting
+  switch (audioSort.value) {
+    case 'newest':
+      result.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+      break
+    case 'oldest':
+      result.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0))
+      break
+    case 'title':
+      result.sort((a, b) => (a.title || a.original_filename || '').localeCompare(b.title || b.original_filename || ''))
+      break
+    case 'size':
+      result.sort((a, b) => (b.file_size || 0) - (a.file_size || 0))
+      break
+  }
+
+  return result
+})
+
+const totalAudioPages = computed(() => Math.ceil(filteredAudioFiles.value.length / audioPageSize))
+
+const paginatedAudioFiles = computed(() => {
+  const start = (audioPage.value - 1) * audioPageSize
+  return filteredAudioFiles.value.slice(start, start + audioPageSize)
+})
 
 const tabs = [
   { id: 'users', label: 'Users' },
@@ -680,6 +914,11 @@ watch(activeTab, async (newTab) => {
   } else if (newTab === 'announcements' && announcements.value.length === 0) {
     await loadAnnouncements()
   }
+})
+
+//reset audio page when search or sort changes
+watch([audioSearch, audioSort], () => {
+  audioPage.value = 1
 })
 
 async function loadSystemStats() {
@@ -722,11 +961,6 @@ async function processPendingDeletions() {
       type: 'success',
       message: `Processed ${processedCount} pending deletion${processedCount !== 1 ? 's' : ''}`
     }
-
-    uiStore.showNotification(
-      `Successfully processed ${processedCount} pending deletion${processedCount !== 1 ? 's' : ''}`,
-      'success'
-    )
 
     await loadUsers()
   } catch (err) {
@@ -907,11 +1141,24 @@ async function deleteAnnouncementById(announcementId) {
 
 async function viewUserDetails(user) {
   selectedUser.value = user
+  userStats.value = null
+  userCollectionStats.value = null
+
   try {
-    const response = await api.getUserUploadStats(user.id)
-    userStats.value = response.data
+    const [uploadStatsRes, collectionStatsRes] = await Promise.all([
+      api.getUserUploadStats(user.id),
+      api.getUserCollectionStats(user.id)
+    ])
+    userStats.value = uploadStatsRes.data
+    userCollectionStats.value = collectionStatsRes.data
   } catch (err) {
     console.error('Failed to load user stats:', err)
+    try {
+      const response = await api.getUserUploadStats(user.id)
+      userStats.value = response.data
+    } catch (innerErr) {
+      console.error('Failed to load upload stats:', innerErr)
+    }
   }
 }
 
@@ -939,6 +1186,64 @@ async function saveUploadLimit() {
 
 function viewCollection(collection) {
   router.push(`/collection/${collection.id}`)
+}
+
+function confirmDeleteCollection(collection) {
+  if (actionInProgress.value) return
+
+  uiStore.openModal('confirm', {
+    title: 'Delete Collection',
+    message: `Are you sure you want to delete "${collection.title}"? This action cannot be undone.`,
+    details: `Owner: ${getOwnerName(collection)}`,
+    type: 'danger',
+    confirmText: 'Delete Collection',
+    onConfirm: async () => {
+      if (actionInProgress.value) return
+      actionInProgress.value = true
+
+      try {
+        await api.deleteCollection(collection.id)
+        uiStore.showNotification('Collection deleted successfully', 'success')
+        await loadCollections()
+        await loadSystemStats()
+      } catch (err) {
+        console.error('Failed to delete collection:', err)
+        uiStore.showNotification(err.response?.data?.detail || 'Failed to delete collection', 'error')
+      } finally {
+        actionInProgress.value = false
+      }
+    }
+  })
+}
+
+function confirmDeleteAudioFile(file) {
+  if (actionInProgress.value) return
+
+  const fileName = file.title || file.original_filename || 'Untitled'
+
+  uiStore.openModal('confirm', {
+    title: 'Delete Audio File',
+    message: `Are you sure you want to delete "${fileName}"? This will also remove it from all collections.`,
+    details: `Owner: ${getOwnerName(file)}`,
+    type: 'danger',
+    confirmText: 'Delete Audio File',
+    onConfirm: async () => {
+      if (actionInProgress.value) return
+      actionInProgress.value = true
+
+      try {
+        await api.deleteAudioFile(file.id)
+        uiStore.showNotification('Audio file deleted successfully', 'success')
+        await loadAudioFiles()
+        await loadSystemStats()
+      } catch (err) {
+        console.error('Failed to delete audio file:', err)
+        uiStore.showNotification(err.response?.data?.detail || 'Failed to delete audio file', 'error')
+      } finally {
+        actionInProgress.value = false
+      }
+    }
+  })
 }
 
 function confirmResetUploads(user) {
@@ -1152,6 +1457,26 @@ function formatDate(dateString) {
   } catch (err) {
     return 'Invalid date'
   }
+}
+
+function highlightText(text, search) {
+  if (!text) return ''
+  if (!search || !search.trim()) return escapeHtml(text)
+
+  const escapedText = escapeHtml(text)
+  const escapedSearch = escapeHtml(search.trim())
+  const regex = new RegExp(`(${escapeRegex(escapedSearch)})`, 'gi')
+  return escapedText.replace(regex, '<mark class="search-highlight">$1</mark>')
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div')
+  div.textContent = text
+  return div.innerHTML
+}
+
+function escapeRegex(string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 </script>
 
@@ -1370,6 +1695,84 @@ function formatDate(dateString) {
   margin: 0;
 }
 
+.search-filter-bar {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.search-box {
+  flex: 1;
+  min-width: 250px;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-tertiary);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.search-input {
+  width: 100%;
+  padding: 10px 12px 10px 40px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light-10);
+  border-radius: var(--border-radius-sm);
+  color: var(--text-light);
+  font-size: 14px;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--text-light);
+}
+
+.search-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+:deep(.search-highlight) {
+  background-color: rgba(255, 213, 79, 0.4);
+  color: inherit;
+  padding: 1px 2px;
+  border-radius: 2px;
+}
+
+.filter-options {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filter-select {
+  padding: 10px 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light-10);
+  border-radius: var(--border-radius-sm);
+  color: var(--text-light);
+  font-size: 14px;
+  cursor: pointer;
+  min-width: 140px;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: var(--text-light);
+}
+
+.filter-select option {
+  background: var(--bg-container);
+  color: var(--text-light);
+}
+
 .refresh-button {
   display: flex;
   align-items: center;
@@ -1504,36 +1907,19 @@ function formatDate(dateString) {
   color: rgb(34, 197, 94);
 }
 
+.icon-button.danger {
+  color: rgb(239, 68, 68);
+}
+
+.icon-button.danger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.15);
+  color: rgb(239, 68, 68);
+}
+
 .col-actions {
   display: flex;
   gap: 4px;
   justify-content: flex-end;
-}
-
-.mini-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 16px;
-  margin-bottom: 24px;
-  padding: 16px;
-  background: var(--bg-surface);
-  border-radius: var(--border-radius-sm);
-}
-
-.mini-stat {
-  text-align: center;
-}
-
-.mini-stat-label {
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-bottom: 4px;
-}
-
-.mini-stat-value {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--text-light);
 }
 
 .error-message {
@@ -1657,6 +2043,33 @@ function formatDate(dateString) {
 
 .audio-owner {
   font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.audio-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.audio-files-header {
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 16px;
+  margin-top: 12px;
+}
+
+.page-info {
+  font-size: 14px;
   color: var(--text-secondary);
 }
 

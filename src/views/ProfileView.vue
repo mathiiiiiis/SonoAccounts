@@ -121,6 +121,16 @@
 
           <div class="account-item">
             <div class="account-info">
+              <h3>Manage Songs</h3>
+              <p>Edit or delete your uploaded songs</p>
+            </div>
+            <button class="btn btn-secondary" @click="openManageSongs">
+              Manage
+            </button>
+          </div>
+
+          <div class="account-item">
+            <div class="account-info">
               <h3>Sign Out</h3>
               <p>Log out of your account on this device</p>
             </div>
@@ -531,6 +541,10 @@ async function handleCancelDeletion() {
   } finally {
     cancelLoading.value = false
   }
+}
+
+function openManageSongs() {
+  uiStore.openModal('manage-songs')
 }
 </script>
 

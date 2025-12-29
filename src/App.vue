@@ -23,6 +23,7 @@
       <EditCollectionModal v-if="uiStore.activeModal === 'edit-collection'" />
       <EditAudioFileModal v-if="uiStore.activeModal === 'edit-audio'" />
       <AddTracksModal v-if="uiStore.activeModal === 'add-tracks'" />
+      <ManageSongsModal v-if="uiStore.activeModal === 'manage-songs'" />
       <ConfirmModal
         v-if="uiStore.activeModal === 'confirm'"
         v-bind="uiStore.modalData"
@@ -68,6 +69,7 @@ import CreateCollectionModal from '@/components/modals/CreateCollectionModal.vue
 import EditCollectionModal from '@/components/modals/EditCollectionModal.vue'
 import EditAudioFileModal from '@/components/modals/EditAudioFileModal.vue'
 import AddTracksModal from '@/components/modals/AddTracksModal.vue'
+import ManageSongsModal from '@/components/modals/ManageSongsModal.vue'
 import ConfirmModal from '@/components/modals/ConfirmModal.vue'
 
 const route = useRoute()

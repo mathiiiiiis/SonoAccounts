@@ -29,7 +29,7 @@ app.use((req, res, next) => {
     "script-src 'self' 'unsafe-inline'; " +
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
     "font-src 'self' https://fonts.gstatic.com; " +
-    "img-src 'self' https://*.sono.wtf https://sono.wtf http://*.sono.wtf http://sono.wtf https://raw.githubusercontent.com https://avatars.githubusercontent.com https://user-images.githubusercontent.com https://github.com data: blob:; " +
+    "img-src 'self' https://*.sono.wtf https://sono.wtf http://*.sono.wtf http://sono.wtf https://raw.githubusercontent.com https://avatars.githubusercontent.com https://user-images.githubusercontent.com https://github.com  https://github-production-user-asset-6210df.s3.amazonaws.com data: blob:; " +
     "media-src 'self' https://*.sono.wtf https://sono.wtf http://*.sono.wtf http://sono.wtf https://github.com blob:; " +
     "connect-src 'self' https://lrclib.net https://api.github.com https://*.sono.wtf https://sono.wtf; " + 
     "frame-src https://*.sono.wtf https://sono.wtf;"
@@ -77,10 +77,6 @@ app.use('/api', createProxyMiddleware({
   followRedirects: false,
   ws: true,
   onProxyReq: (proxyReq, req, res) => {
-    // DEBUG LOG
-    // DONT FORGET IT DUMBAHH MATHIS
-    console.log(`Proxying ${req.method} ${req.url} -> ${API_TARGET}${req.url}`);
-    
     const targetUrl = new URL(API_TARGET);
     proxyReq.setHeader('Host', targetUrl.host);
   },

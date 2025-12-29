@@ -215,9 +215,7 @@ async function loadAnnouncements() {
 
 async function loadGitHubReleases() {
   try {
-    const response = await axios.get('https://api.github.com/repos/mathiiiiiis/SonoAPK/releases', {
-      params: { per_page: 10 }
-    })
+    const response = await axios.get('https://api.github.com/repos/mathiiiiiis/SonoAPK/releases')
     releases.value = Array.isArray(response.data) ? response.data : []
   } catch (err) {
     console.error('Failed to load GitHub releases:', err)
@@ -227,9 +225,7 @@ async function loadGitHubReleases() {
 
 async function loadGitHubCommits() {
   try {
-    const response = await axios.get('https://api.github.com/repos/mathiiiiiis/SonoAccounts/commits', {
-      params: { per_page: 10 }
-    })
+    const response = await axios.get('https://api.github.com/repos/mathiiiiiis/SonoAccounts/commits')
     commits.value = Array.isArray(response.data) ? response.data : []
   } catch (err) {
     console.error('Failed to load GitHub commits:', err)

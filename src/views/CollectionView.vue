@@ -62,10 +62,10 @@
         </div>
       </div>
 
-      <div v-if="isOwner && collection.collection_type === 'playlist'" class="collaborators-section">
+      <div v-if="collection.is_collaborative" class="collaborators-section">
         <div class="collaborators-header">
           <h3>Collaborators</h3>
-          <button class="btn-text" @click="openCollaboratorsModal">
+          <button v-if="isOwner" class="btn-text" @click="openCollaboratorsModal">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
               <circle cx="8.5" cy="7" r="4"/>
@@ -83,7 +83,7 @@
             </div>
             <div class="collaborator-info">
               <span class="collaborator-name">{{ collab.user?.username || 'Unknown' }}</span>
-              <span class="collaborator-role">{{ collab.can_edit ? 'Editor' : 'Viewer' }}</span>
+              <span class="collaborator-role">{{ collab.permission_level === 'edit' ? 'Editor' : 'Viewer' }}</span>
             </div>
           </div>
         </div>
@@ -113,13 +113,16 @@
               v-for="(track, index) in tracks"
               :key="track.id"
               :track="track.audio_file"
+              :track-id="track.id"
               :index="index"
               :can-delete="canEdit"
               :can-edit="canEdit"
+              :can-reorder="canEdit"
               :collection="collection"
               @play="playTrack(index)"
               @edit="editTrack(track.audio_file)"
               @delete="deleteTrack(track)"
+              @reorder="handleReorder"
             />
           </div>
 
@@ -181,7 +184,7 @@
             <div v-for="collab in collection.collaborators" :key="collab.user_id" class="collab-item">
               <div class="collab-info">
                 <span class="collab-name">{{ collab.user?.username || 'Unknown' }}</span>
-                <span class="collab-perm">{{ collab.can_edit ? 'Editor' : 'Viewer' }}</span>
+                <span class="collab-perm">{{ collab.permission_level === 'edit' ? 'Editor' : 'Viewer' }}</span>
               </div>
               <button class="btn-remove" @click="removeCollaborator(collab.user_id)">Remove</button>
             </div>
@@ -239,7 +242,7 @@ const isOwner = computed(() => {
 const isCollaborator = computed(() => {
   if (!collection.value?.collaborators || !authStore.user?.id) return false
   return collection.value.collaborators.some(
-    collab => collab.user_id === authStore.user.id && collab.can_edit
+    collab => collab.user_id === authStore.user.id && collab.permission_level === 'edit'
   )
 })
 
@@ -441,6 +444,27 @@ function deleteTrack(track) {
       }
     }
   })
+}
+
+async function handleReorder({ fromIndex, toIndex, trackId }) {
+  if (fromIndex === toIndex) return
+
+  const newOrder = toIndex + 1
+
+  const tracksCopy = [...tracks.value]
+  const [movedTrack] = tracksCopy.splice(fromIndex, 1)
+  tracksCopy.splice(toIndex, 0, movedTrack)
+  tracks.value = tracksCopy
+
+  try {
+    await api.reorderTrack(collection.value.id, trackId, newOrder)
+    dataStore.invalidateCollection(collection.value.id)
+  } catch (err) {
+    console.error('Failed to reorder track:', err)
+    uiStore.showNotification('Failed to reorder track', 'error')
+    //revert on error
+    await loadCollection(true)
+  }
 }
 
 function deleteCollection() {

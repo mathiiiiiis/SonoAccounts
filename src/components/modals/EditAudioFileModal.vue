@@ -12,31 +12,6 @@
 
       <form @submit.prevent="handleSubmit" class="modal-body">
         <div class="form-group">
-          <label class="form-label">Cover Art</label>
-          <div class="cover-art-upload">
-            <div class="cover-preview">
-              <img
-                :src="coverPreview || formData.cover_art_url || defaultTrackCover"
-                alt="Cover"
-              />
-            </div>
-            <div class="cover-actions">
-              <input
-                type="file"
-                ref="coverInput"
-                accept="image/*"
-                @change="handleCoverSelect"
-                style="display: none"
-              />
-              <button type="button" class="btn btn-secondary btn-sm" @click="$refs.coverInput.click()">
-                {{ formData.cover_art_url || coverFile ? 'Change' : 'Upload' }} Cover Art
-              </button>
-              <p class="form-hint">JPG, PNG or GIF. Max 5MB.</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="form-group">
           <label class="form-label">Title *</label>
           <input
             v-model="formData.title"
@@ -47,30 +22,19 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label">Artist</label>
-          <input
-            v-model="formData.artist"
-            type="text"
-            placeholder="Artist name"
-          />
+          <label class="form-label">Description</label>
+          <textarea
+            v-model="formData.description"
+            placeholder="Add a description..."
+            rows="3"
+          ></textarea>
         </div>
 
         <div class="form-group">
-          <label class="form-label">Album</label>
-          <input
-            v-model="formData.album"
-            type="text"
-            placeholder="Album name"
-          />
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Genre</label>
-          <input
-            v-model="formData.genre"
-            type="text"
-            placeholder="Genre"
-          />
+          <label class="checkbox-label">
+            <input type="checkbox" v-model="formData.is_public" />
+            <span>Make public</span>
+          </label>
         </div>
 
         <div v-if="error" class="form-error">{{ error }}</div>
@@ -90,29 +54,20 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { useUIStore } from '@/stores/ui'
 import * as api from '@/services/api'
 import { getErrorMessage } from '@/utils/errorHandling'
-import defaultTrackCoverSvg from '@/assets/images/defaults/default_track_cover.svg'
 
-const router = useRouter()
 const uiStore = useUIStore()
-const defaultTrackCover = defaultTrackCoverSvg
 
 const loading = ref(false)
 const error = ref(null)
-const coverInput = ref(null)
-const coverFile = ref(null)
-const coverPreview = ref(null)
 
 const formData = ref({
   id: null,
   title: '',
-  artist: '',
-  album: '',
-  genre: '',
-  cover_art_url: ''
+  description: '',
+  is_public: false
 })
 
 onMounted(() => {
@@ -120,38 +75,11 @@ onMounted(() => {
     formData.value = {
       id: uiStore.modalData.id,
       title: uiStore.modalData.title || '',
-      artist: uiStore.modalData.artist || '',
-      album: uiStore.modalData.album || '',
-      genre: uiStore.modalData.genre || '',
-      cover_art_url: uiStore.modalData.cover_art_url || ''
+      description: uiStore.modalData.description || '',
+      is_public: uiStore.modalData.is_public || false
     }
   }
 })
-
-function handleCoverSelect(event) {
-  const file = event.target.files[0]
-  if (!file) return
-
-  if (file.size > 5 * 1024 * 1024) {
-    error.value = 'Cover art must be less than 5MB'
-    return
-  }
-
-  if (!file.type.startsWith('image/')) {
-    error.value = 'Please select an image file'
-    return
-  }
-
-  coverFile.value = file
-
-  const reader = new FileReader()
-  reader.onload = (e) => {
-    coverPreview.value = e.target.result
-  }
-  reader.readAsDataURL(file)
-
-  error.value = null
-}
 
 async function handleSubmit() {
   loading.value = true
@@ -159,21 +87,19 @@ async function handleSubmit() {
 
   try {
     const updateData = {
-      title: formData.value.title
+      title: formData.value.title,
+      is_public: formData.value.is_public
     }
 
-    if (formData.value.artist) updateData.artist = formData.value.artist
-    if (formData.value.album) updateData.album = formData.value.album
-    if (formData.value.genre) updateData.genre = formData.value.genre
+    if (formData.value.description) {
+      updateData.description = formData.value.description
+    }
 
     await api.updateAudioFile(formData.value.id, updateData)
 
-    if (coverFile.value) {
-      await api.uploadAudioCoverArt(formData.value.id, coverFile.value)
-    }
-
     if (uiStore.modalData?.onSuccess) {
       await uiStore.modalData.onSuccess()
+      uiStore.showNotification('Track Info(s) updated succesfully!')
     }
 
     uiStore.closeModal()
@@ -208,7 +134,7 @@ async function handleSubmit() {
   background: var(--bg-container);
   border-radius: var(--border-radius-lg);
   width: 90%;
-  max-width: 600px;
+  max-width: 500px;
   max-height: 90vh;
   overflow: hidden;
   display: flex;
@@ -259,31 +185,18 @@ async function handleSubmit() {
   overflow-y: auto;
 }
 
-.cover-art-upload {
+.checkbox-label {
   display: flex;
-  gap: 20px;
   align-items: center;
-}
-
-.cover-preview {
-  width: 120px;
-  height: 120px;
-  border-radius: var(--border-radius);
-  overflow: hidden;
-  background: var(--bg-surface);
-  flex-shrink: 0;
-}
-
-.cover-preview img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.cover-actions {
-  display: flex;
-  flex-direction: column;
   gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: auto;
+  cursor: pointer;
 }
 
 .modal-footer {

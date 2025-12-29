@@ -54,7 +54,7 @@
           </label>
         </div>
 
-        <div v-if="formData.collection_type === 'playlist'" class="form-group">
+        <div class="form-group">
           <label class="checkbox-label">
             <input type="checkbox" v-model="formData.is_collaborative" />
             <span>Allow collaborators</span>
@@ -129,7 +129,7 @@ async function handleSubmit() {
       const trimmedArtist = formData.value.artist.trim()
       if (trimmedArtist) cleanData.artist = trimmedArtist
     }
-    if (formData.value.collection_type === 'playlist' && formData.value.is_collaborative) {
+    if (formData.value.is_collaborative) {
       cleanData.is_collaborative = true
     }
 
