@@ -46,6 +46,8 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
+    const authHeader = config.headers.Authorization ? 'Bearer ***' : 'none'
+    console.log(`[SonoWeb] ${config.method?.toUpperCase()} ${config.url} | Auth: ${authHeader}`)
     return config
   },
   (error) => Promise.reject(error)
@@ -53,8 +55,13 @@ api.interceptors.request.use(
 
 //response for token refresh and retry logic
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log(`[SonoWeb] ${response.config.method?.toUpperCase()} ${response.config.url} => ${response.status}`)
+    return response
+  },
   async (error) => {
+    const status = error.response?.status || 'NETWORK_ERROR'
+    console.log(`[SonoWeb] ${error.config?.method?.toUpperCase()} ${error.config?.url} => ${status}`)
     const originalRequest = error.config
 
     //handle "401 Unauthorized" => try to refresh token
@@ -64,7 +71,7 @@ api.interceptors.response.use(
       try {
         const refreshToken = localStorage.getItem('refresh_token')
         if (refreshToken) {
-          const response = await axios.post('/users/token/refresh', {
+          const response = await axios.post('/api/v1/users/token/refresh', {
             refresh_token: refreshToken
           })
 
@@ -74,6 +81,7 @@ api.interceptors.response.use(
 
           originalRequest.headers.Authorization = `Bearer ${access_token}`
           return api(originalRequest)
+        } else {
         }
       } catch (refreshError) {
         localStorage.removeItem('access_token')

@@ -10,11 +10,15 @@
     @dragover="handleDragOver"
     @dragleave="handleDragLeave"
     @drop="handleDrop"
-    @touchstart="handleTouchStart"
-    @touchmove="handleTouchMove"
-    @touchend="handleTouchEnd"
   >
-    <div v-if="canReorder" class="drag-handle" @mousedown.stop @touchstart.stop>
+    <div 
+      v-if="canReorder" 
+      class="drag-handle" 
+      @mousedown.stop
+      @touchstart.stop.passive="handleTouchStart"
+      @touchmove.stop.prevent="handleTouchMove"
+      @touchend.stop="handleTouchEnd"
+    >
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <circle cx="9" cy="6" r="1.5" fill="currentColor"/>
         <circle cx="15" cy="6" r="1.5" fill="currentColor"/>
@@ -122,7 +126,6 @@ const isTouchDevice = ref(false)
 const touchStartY = ref(0)
 const hasMoved = ref(false)
 
-// Touch drag state
 let touchDragData = null
 let scrollInterval = null
 
@@ -136,7 +139,6 @@ onUnmounted(() => {
   }
 })
 
-// Desktop drag handlers
 function handleDragStart(e) {
   if (!props.canReorder || isTouchDevice.value) return
   isDragging.value = true
@@ -150,6 +152,10 @@ function handleDragStart(e) {
 function handleDragEnd() {
   isDragging.value = false
   isDragOver.value = false
+  if (scrollInterval) {
+    clearInterval(scrollInterval)
+    scrollInterval = null
+  }
 }
 
 function handleDragOver(e) {
@@ -157,16 +163,47 @@ function handleDragOver(e) {
   e.preventDefault()
   e.dataTransfer.dropEffect = 'move'
   isDragOver.value = true
+  
+  const viewportHeight = window.innerHeight
+  const scrollThreshold = 100
+  
+  if (e.clientY < scrollThreshold) {
+    if (!scrollInterval) {
+      scrollInterval = setInterval(() => {
+        window.scrollBy(0, -5)
+      }, 16)
+    }
+  } else if (e.clientY > viewportHeight - scrollThreshold) {
+    if (!scrollInterval) {
+      scrollInterval = setInterval(() => {
+        window.scrollBy(0, 5)
+      }, 16)
+    }
+  } else {
+    if (scrollInterval) {
+      clearInterval(scrollInterval)
+      scrollInterval = null
+    }
+  }
 }
 
 function handleDragLeave() {
   isDragOver.value = false
+  if (scrollInterval) {
+    clearInterval(scrollInterval)
+    scrollInterval = null
+  }
 }
 
 function handleDrop(e) {
   if (!props.canReorder || isTouchDevice.value) return
   e.preventDefault()
   isDragOver.value = false
+  
+  if (scrollInterval) {
+    clearInterval(scrollInterval)
+    scrollInterval = null
+  }
 
   try {
     const data = JSON.parse(e.dataTransfer.getData('text/plain'))
@@ -179,11 +216,12 @@ function handleDrop(e) {
 }
 
 function handleTouchStart(e) {
-  if (!props.canReorder || !isTouchDevice.value) return
+  if (!props.canReorder) return
   
   const touch = e.touches[0]
   touchStartY.value = touch.clientY
   hasMoved.value = false
+  isDragging.value = true
   
   touchDragData = {
     index: props.index,
@@ -193,55 +231,49 @@ function handleTouchStart(e) {
 }
 
 function handleTouchMove(e) {
-  if (!props.canReorder || !isTouchDevice.value || !touchDragData) return
+  if (!props.canReorder || !touchDragData) return
+  
+  hasMoved.value = true
   
   const touch = e.touches[0]
-  const deltaY = Math.abs(touch.clientY - touchStartY.value)
-
-  if (deltaY > 10) {
-    hasMoved.value = true
-    isDragging.value = true
-    e.preventDefault()
-    
-    const viewportHeight = window.innerHeight
-    const scrollThreshold = 100
-    const scrollSpeed = 5
-    
-    if (touch.clientY < scrollThreshold) {
-      if (!scrollInterval) {
-        scrollInterval = setInterval(() => {
-          window.scrollBy(0, -scrollSpeed)
-        }, 16)
-      }
-    } else if (touch.clientY > viewportHeight - scrollThreshold) {
-      if (!scrollInterval) {
-        scrollInterval = setInterval(() => {
-          window.scrollBy(0, scrollSpeed)
-        }, 16)
-      }
-    } else {
-      if (scrollInterval) {
-        clearInterval(scrollInterval)
-        scrollInterval = null
-      }
+  
+  const viewportHeight = window.innerHeight
+  const scrollThreshold = 100
+  
+  if (touch.clientY < scrollThreshold) {
+    if (!scrollInterval) {
+      scrollInterval = setInterval(() => {
+        window.scrollBy(0, -5)
+      }, 16)
     }
-
-    const elementUnder = document.elementFromPoint(touch.clientX, touch.clientY)
-    const trackRowUnder = elementUnder?.closest('.track-row')
-    
-    document.querySelectorAll('.track-row.drag-over').forEach(el => {
-      el.classList.remove('drag-over')
-    })
-    
-    if (trackRowUnder && trackRowUnder !== e.currentTarget) {
-      trackRowUnder.classList.add('drag-over')
+  } else if (touch.clientY > viewportHeight - scrollThreshold) {
+    if (!scrollInterval) {
+      scrollInterval = setInterval(() => {
+        window.scrollBy(0, 5)
+      }, 16)
     }
+  } else {
+    if (scrollInterval) {
+      clearInterval(scrollInterval)
+      scrollInterval = null
+    }
+  }
+  
+  const elementUnder = document.elementFromPoint(touch.clientX, touch.clientY)
+  const trackRowUnder = elementUnder?.closest('.track-row')
+  
+  document.querySelectorAll('.track-row.drag-over').forEach(el => {
+    el.classList.remove('drag-over')
+  })
+
+  if (trackRowUnder) {
+    trackRowUnder.classList.add('drag-over')
   }
 }
 
 function handleTouchEnd(e) {
-  if (!props.canReorder || !isTouchDevice.value || !touchDragData) return
-
+  if (!props.canReorder || !touchDragData) return
+  
   if (scrollInterval) {
     clearInterval(scrollInterval)
     scrollInterval = null
@@ -250,12 +282,10 @@ function handleTouchEnd(e) {
   isDragging.value = false
   
   if (hasMoved.value) {
-    e.preventDefault()
-    
     const touch = e.changedTouches[0]
     const elementUnder = document.elementFromPoint(touch.clientX, touch.clientY)
     const trackRowUnder = elementUnder?.closest('.track-row')
-
+    
     document.querySelectorAll('.track-row.drag-over').forEach(el => {
       el.classList.remove('drag-over')
     })
@@ -331,7 +361,11 @@ const artistName = computed(() => {
   color: var(--text-tertiary);
   cursor: grab;
   transition: color var(--transition-fast);
-  padding: 4px;
+  padding: 8px;
+  margin: -8px;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .drag-handle:active {
@@ -445,5 +479,17 @@ const artistName = computed(() => {
 .track-delete-btn:hover {
   background: var(--error-bg);
   color: var(--error-text);
+}
+
+@media (max-width: 768px) {
+  .drag-handle {
+    padding: 12px;
+    margin: -12px;
+  }
+  
+  .drag-handle svg {
+    width: 20px;
+    height: 20px;
+  }
 }
 </style>
