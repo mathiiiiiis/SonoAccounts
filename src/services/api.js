@@ -47,7 +47,6 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`
     }
     const authHeader = config.headers.Authorization ? 'Bearer ***' : 'none'
-    console.log(`[SonoWeb] ${config.method?.toUpperCase()} ${config.url} | Auth: ${authHeader}`)
     return config
   },
   (error) => Promise.reject(error)
@@ -56,12 +55,10 @@ api.interceptors.request.use(
 //response for token refresh and retry logic
 api.interceptors.response.use(
   (response) => {
-    console.log(`[SonoWeb] ${response.config.method?.toUpperCase()} ${response.config.url} => ${response.status}`)
     return response
   },
   async (error) => {
     const status = error.response?.status || 'NETWORK_ERROR'
-    console.log(`[SonoWeb] ${error.config?.method?.toUpperCase()} ${error.config?.url} => ${status}`)
     const originalRequest = error.config
 
     //handle "401 Unauthorized" => try to refresh token
